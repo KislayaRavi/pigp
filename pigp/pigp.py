@@ -20,6 +20,7 @@ class PIGP():
         self.gp_temp = gpflow.models.GPR(data=(init_data_X, init_data_Y), kernel=self.kr_temp)
         self.ARD(self.gp_temp)
         self.latent_X = tf.convert_to_tensor(np.linspace(lower_bound, upper_bound, num_latent)) # TODO: have a look at this all over again`
+        print(self.latent_X)
         # self.latent_X = tf.convert_to_tensor(np.random.uniform(lower_bound, upper_bound, (num_latent, dim)))
         self.samples_X = tf.convert_to_tensor(np.linspace(lower_bound, upper_bound, num_samples))
         mean, _ = self.gp_temp.predict_f(self.latent_X)
@@ -103,4 +104,18 @@ class D2(PIGP):
         laplacian = tape.gradient(gradient,self.samples_X)
         loss_term = tf.math.reduce_mean(tf.square(self.rhs_sample - laplacian))
         return loss_term
-            
+
+class Diffusion1D(PIGP):
+    def __init__(self,dims,init_data_t,init_data_x,init_data_u,xbounds,tbounds,function_rhs,num_latent=20,num_samples=100,*args):
+            self.domain_data = init_data_x
+            self.xbounds = xbounds
+            super().__init__(dims,init_data_t,init_data_u,tbounds[0],tbounds[1],function_rhs,num_latent,num_samples,*args)
+    
+    def loss(self):
+        self.update_pigp(self.latent_Y)
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(self.samples_X,self.domain_data)
+            mean,_ = self.pigp.predict_f(self.samples_X) 
+        grad = tape.gradient(mean,self.samples_X) 
+        loss_term = tf.math.reduce_mean(tf.square(self.rhs_sample - grad))
+        return loss_term
