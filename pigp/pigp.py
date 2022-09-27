@@ -1,8 +1,12 @@
 from abc import abstractmethod
+from mimetypes import init
+from re import I
 import numpy as np
 import gpflow
 import tensorflow as tf
 import matplotlib.pyplot as plt
+
+tf.get_logger().setLevel("INFO")
 np.random.seed(0)
 tf.random.set_seed(10)
 
@@ -72,7 +76,7 @@ class PIGP():
         plt.plot(self.latent_X.numpy(), self.latent_Y.numpy(), 'r+',label='Latent points')
         plt.legend()
 
-class try1(PIGP):
+class D(PIGP):
 
     def __init__(self, dim, init_data_X, init_data_Y, lower_bound, upper_bound, function_rhs, num_latent=20, num_samples=100, *args):
         super().__init__(dim, init_data_X, init_data_Y, lower_bound, upper_bound, function_rhs, num_latent, num_samples, *args)
@@ -86,24 +90,17 @@ class try1(PIGP):
         loss_term = tf.math.reduce_mean(tf.square(self.rhs_sample - grad_mean))
         return loss_term
 
-if __name__ == '__main__':
-    def target_function(X):
-        return np.sin(2 * np.pi * X)
-
-    def derivative_target_function(X):
-        return 2. * np.pi * np.cos(2 * np.pi * X)
-
-    lower, upper = [0], [1]
-    X = tf.convert_to_tensor(np.linspace(lower, upper, 4))
-    Y = tf.convert_to_tensor(target_function(X))  
-
-    t1 = try1(1, X, Y, lower, upper, derivative_target_function, num_latent=4)
-    t1.train(30)
-    # plt.plot(X, Y)
-    # plt.plot(t1.latent_X.numpy(), t1.latent_Y.numpy(), '+')
-    # print(t1.latent_X)
-    # print(t1.latent_Y)
-    # print(t1.samples_X)
-    # print(t1.pigp)
-    t1.plot_1d()    
-    plt.show()
+class D2(PIGP):
+    def __init__(self,dims,init_data_X,init_data_Y,lower_bound,upper_bound,function_rhs,num_latent=20,num_samples=500,*args):
+        super().__init__(dims,init_data_X,init_data_Y,lower_bound,upper_bound,function_rhs,num_latent,num_samples,*args)
+    
+    def loss(self):
+        self.update_pigp(self.latent_Y)
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(self.samples_X)
+            mean,_ = self.pigp.predict_f(self.samples_X)
+            gradient = tape.gradient(mean,self.samples_X)
+        laplacian = tape.gradient(gradient,self.samples_X)
+        loss_term = tf.math.reduce_mean(tf.square(self.rhs_sample - laplacian))
+        return loss_term
+            
