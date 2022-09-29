@@ -20,7 +20,6 @@ class PIGP():
         self.gp_temp = gpflow.models.GPR(data=(init_data_X, init_data_Y), kernel=self.kr_temp)
         self.ARD(self.gp_temp)
         self.latent_X = tf.convert_to_tensor(np.linspace(lower_bound, upper_bound, num_latent)) # TODO: have a look at this all over again`
-        print(self.latent_X)
         # self.latent_X = tf.convert_to_tensor(np.random.uniform(lower_bound, upper_bound, (num_latent, dim)))
         self.samples_X = tf.convert_to_tensor(np.linspace(lower_bound, upper_bound, num_samples))
         mean, _ = self.gp_temp.predict_f(self.latent_X)
@@ -33,7 +32,8 @@ class PIGP():
     def update_pigp(self, latent_Y):
         # temp_X, temp_Y = tf.concat([self.latent_X], 0), tf.concat([latent_Y], 0)
         # self.pigp.data = (temp_X, temp_Y)
-        self.pigp.data = (self.latent_X, latent_Y)
+        latent_x = self.pigp.data[0]
+        self.pigp.data = (latent_x, latent_Y)
     
     def create_pigp(self, latent_Y):
         # temp_X, temp_Y = tf.concat([bc_x, self.latent_X], 0), tf.concat([bc_y, latent_Y], 0)
@@ -77,6 +77,12 @@ class PIGP():
         plt.plot(self.latent_X.numpy(), self.latent_Y.numpy(), 'r+',label='Latent points')
         plt.legend()
 
+    def plot_initial_estimate(self):
+        plt.plot(self.gp_temp.data[0].numpy(),self.gp_temp.data[1].numpy(),"ro",label="Data")
+        plt.plot(self.samples_X,self.gp_temp.predict_f(self.samples_X)[0].numpy(),'k-',label="Intial GP")
+        plt.plot(self.latent_X.numpy(),self.gp_temp.predict_f(self.latent_X)[0].numpy(),"g+",label="Latent GP")
+        plt.legend()
+
 class D(PIGP):
 
     def __init__(self, dim, init_data_X, init_data_Y, lower_bound, upper_bound, function_rhs, num_latent=20, num_samples=100, *args):
@@ -87,6 +93,7 @@ class D(PIGP):
         with tf.GradientTape(persistent=True) as tape:
             tape.watch(self.samples_X)
             mean, _ = self.pigp.predict_f(self.samples_X)
+
         grad_mean = tape.gradient(mean, self.samples_X)
         loss_term = tf.math.reduce_mean(tf.square(self.rhs_sample - grad_mean))
         return loss_term
@@ -105,17 +112,84 @@ class D2(PIGP):
         loss_term = tf.math.reduce_mean(tf.square(self.rhs_sample - laplacian))
         return loss_term
 
-class Diffusion1D(PIGP):
-    def __init__(self,dims,init_data_t,init_data_x,init_data_u,xbounds,tbounds,function_rhs,num_latent=20,num_samples=100,*args):
-            self.domain_data = init_data_x
-            self.xbounds = xbounds
-            super().__init__(dims,init_data_t,init_data_u,tbounds[0],tbounds[1],function_rhs,num_latent,num_samples,*args)
+def merge(x,t):
+    I = np.zeros((len(x)*len(t),2))
+    k = 0
+    for i,elemx in enumerate(x):
+        for j,elemt in enumerate(t):
+            I[k,0] = elemx
+            I[k,1] = elemt
+            k += 1 
+    return tf.convert_to_tensor(I)
+
+def unfold(func,samples):
+    n = len(samples)
+    Z = np.zeros((n*n,))
+    for i in range(n):
+        Z[n*i:n*(i+1)] = func(samples)
+    return Z
+
+class Diffusion1D(PIGP): 
+    def __init__(self,dims,xinit,yinit,rhs,num_latent=25,num_samples=50):
+        self.dims = dims
+        self.num_latent = num_latent
+        self.num_samples = num_samples
+
+        # Original grid
+        self.input = xinit
+        self.output = yinit
+        self.xmin, self.xmax = xinit.numpy()[:,0].min(),xinit.numpy()[:,0].max()
+        self.tmin, self.tmax = xinit.numpy()[:,1].min(),xinit.numpy()[:,1].max()
+        
+        # Latent grid
+        self.xlatent = np.linspace(self.xmin,self.xmax,num_latent)
+        self.tlatent = np.linspace(self.tmin,self.tmax,num_latent)
+        self.input_latent = merge(self.xlatent,self.tlatent)
     
+        # Sample grid
+        self.xsamples = np.linspace(self.xmin,self.xmax,num_samples)
+        self.tsamples = np.linspace(self.tmin,self.tmax,num_samples)
+        self.input_samples = merge(self.xsamples,self.tsamples)
+ 
+        # Kernels
+        self.initial_kernel = gpflow.kernels.SquaredExponential(variance=1, lengthscales=1)
+        self.pigp_kernel = gpflow.kernels.SquaredExponential(variance=1, lengthscales=1)
+
+        # RHS
+        self.function_rhs = rhs
+        self.f_rhs_samples = unfold(rhs,self.xsamples)
+
+        # GPs
+        self.initial_gp = gpflow.models.GPR(data=(self.input, self.output), kernel=self.initial_kernel)
+
+        self.ARD(self.initial_gp)
+        self.output_latent = tf.Variable(self.initial_gp.predict_f(self.input_latent)[0].numpy())
+        
+        self.pigp = gpflow.models.GPR(data=(self.input_latent, self.output_latent), kernel=self.pigp_kernel)
+
+
+    def train(self,nepochs):
+        tf.print(f"Initial loss : {self.loss()}")
+        opt = tf.keras.optimizers.Adam()
+        for epoch in range(nepochs):
+            opt.minimize(self.loss,self.output_latent)
+            self.pigp_hyperpaprameter_optimize()
+            if epoch % 10 == 0:
+                tf.print(f"Epoch {epoch}: Residual (train) {self.loss()}") 
+
+
     def loss(self):
-        self.update_pigp(self.latent_Y)
+        self.update_pigp(self.output_latent)
+        
         with tf.GradientTape(persistent=True) as tape:
-            tape.watch(self.samples_X,self.domain_data)
-            mean,_ = self.pigp.predict_f(self.samples_X) 
-        grad = tape.gradient(mean,self.samples_X) 
-        loss_term = tf.math.reduce_mean(tf.square(self.rhs_sample - grad))
+            tape.watch(self.input_samples)
+            mean,_ = self.pigp.predict_f(self.input_samples)
+            gradient = tape.gradient(mean,self.input_samples)
+
+        # Derivatives of interest
+        laplacian = tape.gradient(gradient, self.input_samples)[:,0]        
+        time_deriv = gradient[:,1]
+
+        # # Update loss
+        loss_term = tf.math.reduce_mean(tf.square(self.f_rhs_samples + laplacian - time_deriv))
         return loss_term

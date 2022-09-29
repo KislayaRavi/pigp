@@ -28,6 +28,7 @@ def validate_first_derivative():
     FD = D(1, X, Y, lower, upper, first_derivative, num_latent=4,num_samples=100)
     FD.train(30)
     FD.plot_1d()    
+    FD.plot_initial_estimate()
     plt.savefig("figures/1st_derivative.png")
 
 def validate_second_derivative():
@@ -39,7 +40,9 @@ def validate_second_derivative():
     SD = D2(1,X,Y,lower,upper,second_derivative,num_latent=4,num_samples=100)
     SD.train(30)
     SD.plot_1d()
+    SD.plot_initial_estimate()
     plt.savefig("figures/2nd_derivative.png")
+    
 
 
 if __name__ == '__main__':

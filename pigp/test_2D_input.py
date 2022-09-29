@@ -22,36 +22,48 @@ tdata = file["t"][:]
 u = file["u"][:]
 size = u.shape
 
+def rhs(X):
+    return -np.sin(8*X) -np.cos(6*X)
 
-"""
-    Assume that GP does not explictly depend on x.
-    That is dependence is on t alone.
-    For testing fit!
-"""
-def validation_domain_agnostic():
-    # Select a single location on the domain and perform this experiment.
-    xidx = 6 # Middle of the 1D domain.
+def validation_domain_aware(): 
+    x = xdata[0:127:10]
+    t = tdata[0:26:5]
+    I = merge(x,t)
+    O_temp = u[0:127:10,0:26:5]
+    O = O_temp.flatten().reshape(-1,1)
 
-    # Input data to a PIGP
-    T = tdata
-    U = u[xidx,:]  
+    num_samples = 30
+    num_latents = 15
 
-    # Derivative
-    def rhs(X):
-        return -np.sin(X)
+    X = I
+    Y = tf.convert_to_tensor(O)
+    df = Diffusion1D(2,X,Y,rhs,num_latent=num_latents,num_samples=num_samples)
+    df.train(int(1e2))
 
-    tmin,tmax = T.min(),T.max()
-    xmin,xmax = xdata.min(),xdata.max()
+    
+    # Validation with plots here.
+    for i in range(len(t)):
+        fig,axs = plt.subplots(1)
+        axs.plot(x,O_temp[:,i],"g+",label=f"{t[i]}")
 
-    T_init = tf.convert_to_tensor(T[0:-1:2])
-    U_init = tf.convert_to_tensor(U[0:-1:2])
+        # samples = df.input_samples
+        # ypred = df.pigp.predict_f(samples)[0].numpy().reshape(num_samples,num_samples)
+        # xsamples = df.xsamples
+        # tsamples = df.tsamples
+        # print(ypred.shape)
+        
+        samples = I
+        ypred = df.pigp.predict_f(samples)[0].numpy().reshape(13,6)
+        xsamples = x
+        tsamples = t
+        
+        axs.plot(xsamples,ypred[:,i],label=f"{tsamples[i]}")
+        axs.set_ylim([-1,1])
+        axs.set_title("Data vs Prediction")
+        axs.legend()
+        plt.savefig(f"figures/heat_pigp/{i}.png")
+        plt.clf()
 
-    print(T_init,U_init)
-
-    DFGP = Diffusion1D(1,T_init,[xdata[xidx]],U_init,(xmin,xmax),(tmin,tmax),rhs,num_latent=4,num_samples=100)
-    DFGP.train(30)
-    DFGP.plot_1d()
-    plt.savefig(f"figures/1D_Diffusion@index_{xidx}.png")
 
 if __name__ == '__main__':
-    validation_domain_agnostic()
+    validation_domain_aware()

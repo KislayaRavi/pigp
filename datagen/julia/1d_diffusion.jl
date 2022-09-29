@@ -12,14 +12,14 @@ begin
 
     # 1D PDE and boundary conditions
     ## Governing equation
-    eq  = Dt(u(t, x)) ~ Dxx(u(t, x)) - sin(x)
+    eq  = Dt(u(t, x)) ~ Dxx(u(t, x)) - sin(8*x) - cos(6*x)
     
     bcs = [u(0, x) ~ sin(x),
             u(t, 0) ~ 0,
             u(t, 2π) ~ 0]
 
     # Space and time domains
-    domains = [t ∈ Interval(0.0, 4.0),
+    domains = [t ∈ Interval(0.0, 5.0),
             x ∈ Interval(0.0, 2π)]
 
     # PDE system
