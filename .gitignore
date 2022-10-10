@@ -129,4 +129,5 @@ dmypy.json
 .pyre/
 
 # Do not add data
-data
+data/
+figures/

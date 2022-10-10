@@ -102,6 +102,7 @@ class D2(PIGP):
     def __init__(self,dims,init_data_X,init_data_Y,lower_bound,upper_bound,function_rhs,num_latent=20,num_samples=500,*args):
         super().__init__(dims,init_data_X,init_data_Y,lower_bound,upper_bound,function_rhs,num_latent,num_samples,*args)
     
+    ## TODO : Test the second derivative.
     def loss(self):
         self.update_pigp(self.latent_Y)
         with tf.GradientTape(persistent=True) as tape:
@@ -112,6 +113,8 @@ class D2(PIGP):
         loss_term = tf.math.reduce_mean(tf.square(self.rhs_sample - laplacian))
         return loss_term
 
+## Combination and product .... 
+## Throw this away and implment this here.
 def merge(x,t):
     I = np.zeros((len(x)*len(t),2))
     k = 0
@@ -182,7 +185,7 @@ class Diffusion1D(PIGP):
         self.update_pigp(self.output_latent)
         
         with tf.GradientTape(persistent=True) as tape:
-            tape.watch(self.input_samples)
+            tape.watch(self.input_samples) # Change variable name 
             mean,_ = self.pigp.predict_f(self.input_samples)
             gradient = tape.gradient(mean,self.input_samples)
 

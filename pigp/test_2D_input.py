@@ -11,6 +11,7 @@ bcs = [u(0, x) ~ sin(x),
 
 import tensorflow as tf
 import numpy as np
+from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 import h5py
 from pigp import *
@@ -38,9 +39,23 @@ def validation_domain_aware():
     X = I
     Y = tf.convert_to_tensor(O)
     df = Diffusion1D(2,X,Y,rhs,num_latent=num_latents,num_samples=num_samples)
-    df.train(int(1e2))
 
     
+    df.train(int(1e2))
+
+
+    surfX,surfY = np.meshgrid(t,x)
+    Z = O_temp
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    Z1 = df.pigp.predict_f(I)[0].numpy().reshape(13,6)
+    Error = Z1 - Z
+    ax.plot_surface(surfX, surfY, Error,cmap='viridis', edgecolor='none')
+    ax.set_title("Error in data points with PIGP")
+    plt.savefig("figures/Error_2.png")
+
+
+
     # Validation with plots here.
     for i in range(len(t)):
         fig,axs = plt.subplots(1)
