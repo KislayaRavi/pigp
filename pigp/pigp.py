@@ -6,9 +6,57 @@ import gpflow
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-tf.get_logger().setLevel("INFO")
-np.random.seed(0)
-tf.random.set_seed(10)
+
+
+class PIGP():
+
+    #----------------------------------------------------------------#
+    #------------------------Contructor------------------------------#
+    #----------------------------------------------------------------#
+
+    def __init__(self, data, sampler, nlatent, nsampling):
+        self.X, self.Y = data
+        self.nlatent_points, self.nsampling_points = nlatent,nsampling
+        self.sampler = sampler
+        self.latent_grid, self.sampling_grid = self.create_grids()
+        self.latent_gp, self.pigp = self.create_gps()
+
+        
+
+    #----------------------------------------------------------------#
+    #------------------------Internal Functions----------------------#
+    #----------------------------------------------------------------#
+    def latent_grid(self):
+        pass 
+
+    def latent_gp(self):
+        pass
+
+    def sampling_grid(self):
+        pass 
+
+    def pigp(self):
+        pass
+
+    def create_grids(self):
+        pass 
+
+    def create_gps(self):
+        pass
+
+    def local_train(self):
+        pass 
+
+    #----------------------------------------------------------------#
+    #------------------------Interfaces------------------------------#
+    #----------------------------------------------------------------#
+
+    @abstractmethod
+    def loss():
+        pass 
+
+    def train():
+        pass
 
 
 class PIGP():
