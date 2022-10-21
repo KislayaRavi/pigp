@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import h5py
 from pigp import *
 
-# Import the data from the 1D diffusion equation
+# Import the data from the 1D diffusion equation solver.
 file = h5py.File("data/1d_diffusion","r")
 xdata = file["x"][:]
 tdata = file["t"][:]
