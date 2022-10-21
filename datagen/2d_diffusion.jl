@@ -31,8 +31,8 @@ begin
     @named pdesys = PDESystem(eq, bcs, domains, [t, x, y], [u(t, x, y)])
 
     # Method of lines discretization
-    dx = 0.05
-    dy = 0.05
+    dx = 0.5
+    dy = 0.5
     order = 5
     discretization = MOLFiniteDifference([x => dx,y => dy], t)
 

@@ -1,10 +1,3 @@
-""" Simple Tests:
-Performs regression tests on a simple systems such as 
-
-    1. D_x u = 2\pi cos(2\pi x)
-    2. D_{xx} u = - 2\pi^2 sin(2\pi x)
-"""
-
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
