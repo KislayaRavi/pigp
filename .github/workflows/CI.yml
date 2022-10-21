@@ -17,5 +17,23 @@ jobs:
         run : pip install . 
       
       # Run unit tests
-      - name: Run tests.
+
+      ## Test wrappers are working
+      - name: Sampling test.
         run : python test/test_sampling.py
+
+      ## Test PIGP interface is working and the samples from the sine function converges.
+      - name: Convergence test - One dimension.
+        run : python test/test_simple.py
+
+      ## Test PIGP's convergence for problems in higher dimensions.
+      - name: Convergence test - Two dimensions.
+        run : python test/test_poisson.py
+        run : python test/test_1D_heat.py
+        run : python test/test_1D_burgers.py
+        run : python test/test_1D_AllenCahn.py
+      
+      - name : Convergence test - Three dimensions.
+        run : python test/test_2D_heat.py
+        run : python test/test_2D_burgers.py
+        run : python test/test_2D_AllenCahn.py      
