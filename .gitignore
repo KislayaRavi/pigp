@@ -131,3 +131,6 @@ dmypy.json
 # Do not add data
 data/
 figures/
+
+# Virutal environments
+pigp_env

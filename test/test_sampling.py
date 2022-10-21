@@ -1,4 +1,4 @@
-from sampling import *
+from pigp.sampling import *
 
 def test_Sobol():
     # One that should pass 
