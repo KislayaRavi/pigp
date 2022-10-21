@@ -1,66 +1,58 @@
-using OrdinaryDiffEq
-using Plots
 using HDF5
-using FFTW
+using Plots
 gr()
+using OrdinaryDiffEq, ModelingToolkit, MethodOfLines, DomainSets
 
-# Two dimension
-xmin = 0.0
-xmax = 2π
-ymin = 0.0
-ymax = 2π
-tmin = 0.0
-tmax = 1.0
-N = 100
-dx = 2π/N
-dy = 2π/N
+begin
+    # Parameters, variables, and derivatives
+    @parameters t x y
+    @variables u(..)
+    Dt = Differential(t)
+    Dxx = Differential(x)^2
+    Dyy = Differential(y)^2
 
-x = xmin:dx:xmax
-y = ymin:dy:ymax
+    # 1D PDE and boundary conditions
+    ## Governing equation
+    eq  = Dt(u(t, x, y)) ~ Dxx(u(t, x, y)) + Dyy(u(t, x, y)) - sin(8*x) - cos(6*y)
+    
+    bcs = [u(0, x, y) ~ sin(x*y),
+            u(t, 0, y) ~ 0,
+            u(t, 2π, y) ~ 0,
+            u(t, x, 0) ~ 0,
+            u(t, x, 2π) ~ 0
+            ]
 
-function gaussian(x,y,loc)
-    nx = length(x)
-    ny = length(y)
-    A = zeros(nx,ny)
-    σ = 1
-    for i=1:nx
-        for j=1:ny
-            A[i,j] = exp(-(((x[i]-loc)^2)/σ^2 + ((y[j]-loc)^2)/σ^2))
-        end 
+    # Space and time domains
+    domains = [t ∈ Interval(0.0, 5.0),
+            x ∈ Interval(0.0, 2π),
+            y ∈ Interval(0.0, 2π)]
+
+    # PDE system
+    @named pdesys = PDESystem(eq, bcs, domains, [t, x, y], [u(t, x, y)])
+
+    # Method of lines discretization
+    dx = 0.05
+    dy = 0.05
+    order = 5
+    discretization = MOLFiniteDifference([x => dx,y => dy], t)
+
+    # Convert the PDE problem into an ODE problem
+    prob = discretize(pdesys,discretization)
+
+    # Solve ODE problem
+    sol = solve(prob, Tsit5(), saveat=0.2)
+    solution = sol.u[u(t,x,y)]
+
+    anim = @animate for i=1:size(solution,1)
+        heatmap(solution[i,:,:],label="Iterate $(i)",cmap=(-2,2))
     end 
-    A
-end 
+    gif(anim,"figures/1d_Diffusion.gif",fps=20)
 
-u0 = gaussian(x,y,π)
-source = rfft(gaussian(x,y,π/2))
-# heatmap(u0)
-# heatmap(irfft(source,N))
-
-function k!(du,u,p,t)
-    nx,ny = size(u)
-    for i=1:nx
-        for j=1:ny
-            du[i,j] =  -i^2*u[i,j] -j^2*u[i,j] + source[i,j]
-        end 
-    end 
-end 
-
-# Solve problem in Fourier space
-û = rfft(u0)
-tspan = (tmin,tmax)
-prob = ODEProblem(k!,û,tspan,[])
-sol = solve(prob,Tsit5())
-
-
-# Convert problem back to real space.
-solution = Array{eltype(sol[1][1].re),3}(undef,N,N,length(sol))
-for (i,elem) in enumerate(sol.u)
-    solution[:,:,i] = irfft(sol[i],N) 
-end 
-
-# Write the file to  a HDF5 file
-filename= "data/diffusion2d"
-file = h5open(filename,"w")
-file["readme"] = "Output is a three dimensional array. Third dimension indexes the time. The other two are space dimensions."
-file["data"] = solution
-close(file)
+    file = h5open("data/1d_diffusion","w")
+    file["readme"] = "Index u along the first index to get the u value over the domain with respect to time."
+    file["x"] = Vector(0.0:dx:2π)
+    file["y"] = Vector(0.0:dy:2π)
+    file["t"] = sol.t
+    file["u"] = solution
+    close(file)
+ end 

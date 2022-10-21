@@ -6,6 +6,7 @@ import gpflow
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
+from .utils import *
 
 
 class PIGP():
@@ -14,32 +15,41 @@ class PIGP():
     #------------------------Contructor------------------------------#
     #----------------------------------------------------------------#
 
-    def __init__(self, data, sampler, nlatent, nsampling):
+    def __init__(self, data, sampler, nlatent, nsampling,f):
+        # Assignments 
         self.X, self.Y = data
         self.nlatent_points, self.nsampling_points = nlatent,nsampling
         self.sampler = sampler
+        self.lbounds,self.ubounds = find_bounds(self.X)
+        self.f = f
+
+        # Actions
         self.latent_grid, self.sampling_grid = self.create_grids()
         self.latent_gp, self.pigp = self.create_gps()
-
         
 
     #----------------------------------------------------------------#
     #------------------------Internal Functions----------------------#
     #----------------------------------------------------------------#
-    def latent_grid(self):
-        pass 
+    def create_grid(self,lbounds,ubounds,n):
+        # Create grid
+        grid_x = sampler(lbounds,ubounds,n)
+        grid_y = np.zeros(grid_x.shape)        
+        grid = Dict()
+        grid["x"] = latent_x
+        grid["y"] = latent_y
+        return grid
 
     def latent_gp(self):
         pass
-
-    def sampling_grid(self):
-        pass 
 
     def pigp(self):
         pass
 
     def create_grids(self):
-        pass 
+        latent_grid = self.create_grid(self.lbounds,self.ubounds,self.nlatent_points)
+        sampling_grid = self.create_grid(self.lbounds,self.ubounds,self.nsampling_points)
+        return (latent_grid,sampling_grid)
 
     def create_gps(self):
         pass
