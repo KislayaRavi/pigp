@@ -1,0 +1,21 @@
+name: CI
+on: [push,pull_request]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+
+      # Install python on ubuntu
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+      
+      # Setup pigp package
+      - name: Install dependencies
+        run : pip install . 
+      
+      # Run unit tests
+      - name: Run tests.
+        run : python test/test_sampling.py
