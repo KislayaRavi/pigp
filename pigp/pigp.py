@@ -36,11 +36,12 @@ class PIGP():
     
     def create_grid(self,lbounds,ubounds,n):
         # Create grid
-        grid_x = sampler(lbounds,ubounds,n)
+        sampler = self.sampler(lbounds,ubounds,n)
+        grid_x = sampler.sample()
         grid_y = np.zeros(grid_x.shape)        
-        grid = Dict()
-        grid["x"] = latent_x
-        grid["y"] = latent_y
+        grid = dict()
+        grid["x"] = grid_x
+        grid["y"] = grid_y
         return grid
 
     def create_gps(self):
