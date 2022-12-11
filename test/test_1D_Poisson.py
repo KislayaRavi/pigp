@@ -19,7 +19,3 @@ lower = x.min()
 upper = x.max()
 num_iterations = 100
 
-pgp = D2(1,Xdata,Ydata,lower,upper,forcing_function,num_latent=8,num_samples=100)
-pgp.train(num_iterations)
-pgp.plot_1d()
-plt.savefig("1d_diffusion.png")
