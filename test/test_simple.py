@@ -38,7 +38,6 @@ pgp.train(num_iters,10)
 # Make predictions
 xtest = np.linspace(lower[0],upper[0],100).reshape(-1,1)
 ytest,_ = pgp.pigp.predict_f(xtest)
-ytest = ytest
 
 # %% 
 plt.plot(X,Y,"*r")
