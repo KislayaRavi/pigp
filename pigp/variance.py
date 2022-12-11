@@ -28,14 +28,15 @@ def initialize_gaussian(mean,correlation):
 # %% 
 # Define evidence lower bound
 def ELBO(residual,nsamples,prior,approx,gp_z,f):
-    loss = 0.0
-    for samples in range(nsamples):
-        u_s = approx.sample()
-        t1 = approx.log_prob(u_s)
-        t3 = prior.log_prob(u_s)
-        t2 = residual(gp_z,f)
-        loss += -t2+t3-t1
-    loss /= nsamples
+    # loss = 0.0
+    # for samples in range(nsamples):
+        # u_s = approx.sample()
+        # t1 = approx.log_prob(u_s)
+        # t3 = prior.log_prob(u_s)
+        # t2 = residual(gp_z,f)
+        # loss += -t2+t3-t1
+    # loss /= nsamples
+    loss = -residual(gp_z,f)
     return loss 
 
 # %% 
@@ -59,7 +60,7 @@ x = np.linspace(xmin,xmax,nsamping_points).reshape(-1,1)
 
 # %% 
 # Governing equation
-f = lambda x : 2*np.cos(2*x) # With gradient
+f = lambda x : 2*tf.math.cos(2*x) # With gradient
 
 # Define a loss function that is propotional to the likelihood
 def residual(gp_z,f):
@@ -81,7 +82,7 @@ plt.imshow(Kzz)
 # %% 
 
 # Intial parameters for multivariate distributions
-mu = tf.Variable(np.zeros(len(z)))
+mu = tf.Variable(np.zeros(len(z)).reshape(-1,1))
 Ktemp = np.random.rand(np.shape(z)[0],np.shape(z)[0])
 Kguess = tf.Variable(np.ones(len(z)))
 
@@ -94,6 +95,14 @@ nsamples = 100 # For computing the expectation
 # %% 
 # Define TF parsable loss function
 def loss():
+    gp_z = initialize_gp(data=(z,mu))
+
+    # Update the length scale parameter
+    gp_z.likelihood.variance.assign(1e-5)
+    gpf.utilities.set_trainable(gp_z.likelihood.variance,False)
+    opt = gpf.optimizers.Scipy()
+    _  = opt.minimize(loss,gp_z.trainable_variables,options=dict(maxiter=1)) 
+    
     return -ELBO(residual,nsamples,prior,approx_gauss,gp_z,f)
 
 # %% 
@@ -102,13 +111,11 @@ nepochs = 10
 optimizer = tf.optimizers.Adam()
 for epoch in range(nepochs):
     print(f"Epoch {epoch}\t:")
-    optimizer.minimize(loss,var_list=[mu,Kguess])
-    
-    # Update the length scale parameter
-    # gp_z.likelihood.variance.assign(1e-5)
-    # gpf.utilities.set_trainable(gp_z.likelihood.variance,False)
-    # opt = gpf.optimizers.Scipy()
-    # _  = opt.minimize(loss,gp_z.trainable_variables,options=dict(maxiter=1))   
-    
+    optimizer.minimize(loss,var_list=[mu])  
     print(f"{loss()}")
-# %%
+
+# %% Test - LIkelihood only
+gp_z = initialize_gp(data=(z,mu))
+pred_likelihood,_ = gp_z.predict_f(x.reshape(-1,1))
+plt.plot(x,pred_likelihood)
+plt.plot(xinput,yinput,"ok")
