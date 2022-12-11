@@ -40,8 +40,8 @@ class PIGP():
         grid_x = sampler.sample()
         grid_y = np.zeros(grid_x.shape)        
         grid = dict()
-        grid["x"] = grid_x
-        grid["y"] = grid_y
+        grid["x"] = tf.convert_to_tensor(grid_x)
+        grid["y"] = tf.convert_to_tensor(grid_y)
         return grid
 
     def create_gps(self):
@@ -58,9 +58,9 @@ class PIGP():
         return igp
 
     def pigp(self,igp):
-        X = tf.convert_to_tensor(self.latent_grid["x"])
+        X = self.latent_grid["x"]
         mean,_ = igp.predict_f(X)
-        self.latent_grid["y"] = mean.numpy()
+        self.latent_grid["y"] = mean
         kernel = gpflow.kernels.SquaredExponential(variance=1, lengthscales=1)
         pigp = gpflow.models.GPR(data=(X,mean),kernel=kernel)
         return pigp
@@ -78,7 +78,6 @@ class PIGP():
         gpflow.utilities.set_trainable(self.pigp.likelihood.variance, False)
         # gpflow.utilities.set_trainable(self.pigp.data[1], True)
         opt = gpflow.optimizers.Scipy()
-        # print(model.training_variables)
         opt_logs = opt.minimize(self.loss, 
                                 self.pigp.trainable_variables, 
                                 options=dict(maxiter=1))
@@ -91,11 +90,12 @@ class PIGP():
     def loss():
         pass 
 
-    def train(self, nepochs, freq,):
+    def train(self, nepochs, freq):
         optimiser = tf.keras.optimizers.Adam()
         tf.print(f"Initial loss {self.loss()}")
+        self.latent_grid["y"] = tf.Variable(self.latent_grid["y"])
         for epoch_id in range(1, nepochs+1):
-            optimiser.minimize(self.loss, self.latent_Y)
+            optimiser.minimize(self.loss, self.latent_grid["y"])
             self.pigp_hyperpaprameter_optimize()
-            if epoch_id % 10 == 0:
+            if epoch_id % freq == 0:
                 tf.print(f"Epoch {epoch_id}: Residual (train) {self.loss()}")

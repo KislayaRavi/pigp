@@ -1,44 +1,49 @@
+# %%
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from pigp import *
 
+# Turn off warnings
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
+
+# %%
 def target_function(X):
     return np.sin(2 * np.pi * X)
 
 def first_derivative(X):
-    return 2. * np.pi * np.cos(2 * np.pi * X)
+    return 2. * np.pi * tf.math.cos(2 * np.pi * X)
 
-def second_derivative(X):
-    return -(2*np.pi)**2 * np.sin(2*np.pi*X)
+# %%
+lower, upper = [0], [1]
+X = np.linspace(lower, upper, 10)
+Y = target_function(X)  
+num_iters = 100
 
-def validate_first_derivative():
-    lower, upper = [0], [1]
-    X = tf.convert_to_tensor(np.linspace(lower, upper, 4))
-    Y = tf.convert_to_tensor(target_function(X))  
+# %%
+# Compute loss
+pgp = D((X,Y),Sobol,8,16,first_derivative)
+l = pgp.loss()
+# %%
+# Check if gradient is right
+with tf.GradientTape(persistent=True) as tape:
+    tape.watch(pgp.latent_grid["y"])
+    l = pgp.loss()
+grad_loss = tape.gradient(l,pgp.latent_grid["y"])
+# %%
+pgp.train(num_iters,10)
 
-    # First Derivative PIGP
-    FD = D(1, X, Y, lower, upper, first_derivative, num_latent=4,num_samples=100)
-    FD.train(30)
-    FD.plot_1d()    
-    FD.plot_initial_estimate()
-    plt.savefig("figures/1st_derivative.png")
+# %% 
+# Make predictions
+xtest = np.linspace(lower[0],upper[0],100).reshape(-1,1)
+ytest,_ = pgp.pigp.predict_f(xtest)
+ytest = ytest
 
-def validate_second_derivative():
-    lower , upper = [0],[1]
-    X = tf.convert_to_tensor(np.linspace(lower,upper,4))
-    Y = tf.convert_to_tensor(target_function(X))
-    
-    # Second Derivative PIGP
-    SD = D2(1,X,Y,lower,upper,second_derivative,num_latent=4,num_samples=100)
-    SD.train(30)
-    SD.plot_1d()
-    SD.plot_initial_estimate()
-    plt.savefig("figures/2nd_derivative.png")
-    
-
-
-if __name__ == '__main__':
-    validate_first_derivative()
-    plt.clf()
-    validate_second_derivative()
+# %% 
+plt.plot(X,Y,"*r")
+latent_points = pgp.latent_grid["x"].numpy()
+plt.plot(latent_points,np.zeros(latent_points.shape),"ob")
+plt.plot(xtest,ytest,"*k")
+plt.legend(["Data","Latent Points","PIGP"])
+plt.show()
