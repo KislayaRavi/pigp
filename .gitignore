@@ -134,3 +134,4 @@ figures/
 
 # Virutal environments
 pigp_env
+.vscode/settings.json
