@@ -30,7 +30,15 @@ class PIGP():
     #------------------------Internal Functions----------------------#
     #----------------------------------------------------------------#
     def create_grids(self):
-        latent_grid = self.create_grid(self.lbounds,self.ubounds,self.nlatent_points)
+        ##########################################################################################################
+        # TODO: Add function to ensure that there are boundary nodes
+        # latent_grid = self.create_grid(self.lbounds,self.ubounds,self.nlatent_points)
+        grid_x = tf.convert_to_tensor(np.atleast_2d(np.linspace(self.lbounds,self.ubounds,self.nlatent_points)))
+        grid_y = np.zeros(grid_x.shape)
+        latent_grid = dict()
+        latent_grid["x"] = tf.convert_to_tensor(grid_x)
+        latent_grid["y"] = tf.convert_to_tensor(grid_y)
+        ############################################################################################################
         sampling_grid = self.create_grid(self.lbounds,self.ubounds,self.nsampling_points)
         return (latent_grid,sampling_grid)
     
@@ -97,5 +105,10 @@ class PIGP():
         for epoch_id in range(1, nepochs+1):
             optimiser.minimize(self.loss, self.latent_grid["y"])
             self.pigp_hyperpaprameter_optimize()
+            #####################################################################
+            # TODO: Implement it in form of a function
+            self.latent_grid["y"][0].assign(tf.Variable([0.], dtype=np.float64))
+            self.latent_grid["y"][-1].assign(tf.Variable([0.], dtype=np.float64))
+            #######################################################################
             if epoch_id % freq == 0:
                 tf.print(f"Epoch {epoch_id}: Residual (train) {self.loss()}")

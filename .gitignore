@@ -134,3 +134,6 @@ figures/
 
 # Virutal environments
 pigp_env
+
+# VS code
+.vscode
