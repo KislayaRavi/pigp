@@ -23,7 +23,7 @@ num_iters = 100
 
 # %%
 # Compute loss
-pgp = D((X,Y),Sobol,8,16,first_derivative)
+pgp = D((X,Y),LatinHypercube,8,16,first_derivative)
 l = pgp.loss()
 # %%
 # Check if gradient is right
@@ -37,12 +37,15 @@ pgp.train(num_iters,10)
 # %% 
 # Make predictions
 xtest = np.linspace(lower[0],upper[0],100).reshape(-1,1)
-ytest,_ = pgp.pigp.predict_f(xtest)
+ytest, yvar = pgp.pigp.predict_f(xtest)
 
 # %% 
 plt.plot(X,Y,"*r")
 latent_points = pgp.latent_grid["x"].numpy()
 plt.plot(latent_points,np.zeros(latent_points.shape),"ob")
-plt.plot(xtest,ytest,"*k")
+plt.plot(xtest,ytest,"k")
+plt.plot(xtest,ytest+2*yvar,"-k")
+plt.plot(xtest,ytest-2*yvar,"-k")
 plt.legend(["Data","Latent Points","PIGP"])
 plt.show()
+# %%

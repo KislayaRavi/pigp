@@ -1,7 +1,7 @@
-from .pigp import PIGP
+from pigp.pigp import PIGP
 import tensorflow as tf
 import matplotlib.pyplot as plt
-import gpflow
+
 
 """First derivative Operator for one dimension.
 """

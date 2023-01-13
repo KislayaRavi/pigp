@@ -1,45 +1,67 @@
-from pigp import * 
+from pigp.sampling import * 
 
-def test_Sobol():
+def test_uniform_random():
     # One that should pass 
     try:
-        n=512
+        n=50
         min = [0,0]
         max = [1,1]
-        sampler = Sobol(min,max,n)
-        samples = sampler.sample()
-        assert samples.size == n
+        sampler = UniformRandom(min,max)
+        samples_internal = sampler.sample_internal(n)
+        samples_boundary = sampler.sample_boundary(n)
+        assert len(samples_internal) == n
+        assert len(samples_boundary) == n
 
     except ValueError:
-        print("The test should have passed!.")
+        print("Uniform random test should have passed!.")
 
-def test_Halton():
+def test_sobol():
     # One that should pass 
     try:
-        n=512
+        n=32
         min = [0,0]
         max = [1,1]
-        sampler = Halton(min,max,n)
-        samples = sampler.sample()
-        assert samples.size == n
+        sampler = Sobol(min,max)
+        samples_internal = sampler.sample_internal(n)
+        samples_boundary = sampler.sample_boundary(n)
+        assert len(samples_internal) == n
+        assert len(samples_boundary) == n
 
     except ValueError:
-        print("The test should have passed!.")
+        print("Sobol test should have passed!.")
 
-def test_LatinHypercube():
+def test_halton():
     # One that should pass 
     try:
-        n=512
+        n=32
         min = [0,0]
         max = [1,1]
-        sampler = LatinHypercube(min,max,n)
-        samples = sampler.sample()
-        assert samples.size == n
+        sampler = Halton(min,max)
+        samples_internal = sampler.sample_internal(n)
+        samples_boundary = sampler.sample_boundary(n)
+        assert len(samples_internal) == n
+        assert len(samples_boundary) == n
+
+    except ValueError:
+        print("Halton test should have passed!.")
+
+def test_latin_hypercube():
+    # One that should pass 
+    try:
+        n=32
+        min = [0,0]
+        max = [1,1]
+        sampler = LatinHypercube(min,max)
+        samples_internal = sampler.sample_internal(n)
+        samples_boundary = sampler.sample_boundary(n)
+        assert len(samples_internal) == n
+        assert len(samples_boundary) == n
     
     except ValueError:
-        print("The test should have passed!.")
+        print("Latin Hypercube test should have passed!.")
 
 if __name__ == '__main__': 
-    test_Sobol()
-    test_Halton()
-    test_LatinHypercube()
+    test_uniform_random()
+    test_sobol()
+    test_halton()
+    test_latin_hypercube

@@ -11,7 +11,7 @@ from .utils import *
 
 class PIGP():
     #----------------------------------------------------------------#
-    #------------------------Contructor------------------------------#
+    #------------------------Constructor------------------------------#
     #----------------------------------------------------------------#
 
     def __init__(self, data, sampler, nlatent, nsampling,f):
@@ -81,7 +81,7 @@ class PIGP():
                                 gp.trainable_variables, 
                                 options=dict(maxiter=100))  
 
-    def pigp_hyperpaprameter_optimize(self):
+    def pigp_hyperparameter_optimize(self):
         self.pigp.likelihood.variance.assign(1e-5)
         gpflow.utilities.set_trainable(self.pigp.likelihood.variance, False)
         # gpflow.utilities.set_trainable(self.pigp.data[1], True)
@@ -104,7 +104,7 @@ class PIGP():
         self.latent_grid["y"] = tf.Variable(self.latent_grid["y"])
         for epoch_id in range(1, nepochs+1):
             optimiser.minimize(self.loss, self.latent_grid["y"])
-            self.pigp_hyperpaprameter_optimize()
+            self.pigp_hyperparameter_optimize()
             #####################################################################
             # TODO: Implement it in form of a function
             self.latent_grid["y"][0].assign(tf.Variable([0.], dtype=np.float64))
